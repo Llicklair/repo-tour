@@ -147,6 +147,9 @@ class Editor:
     def escena(self, pasos: list[dict], duracion: float) -> tuple[float, float]:
         """Ejecuta los pasos repartidos en `duracion`; devuelve (inicio, fin) en el video."""
         inicio = self.ahora()
+        if not any("buscar" in p for p in pasos):
+            # la busqueda de una escena anterior no se queda tapando el arbol
+            self.pg.keyboard.press("Control+Shift+E")
         hueco = duracion / max(1, len(pasos))
         for i, paso in enumerate(pasos):
             objetivo = inicio + hueco * i

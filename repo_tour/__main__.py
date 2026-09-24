@@ -98,7 +98,8 @@ def cmd_video(args) -> int:
             elif e["tipo"] == "pregunta":
                 pagina = diseno.pregunta(cap, e["texto"], e["respuesta"], nombre, prog, d, revelar[i])
             elif e["tipo"] == "terminal":
-                pagina = diseno.terminal(cap, e["cmd"], _capturar(e["cmd"], repo), nombre, prog, d)
+                pagina = diseno.terminal(cap, e["cmd"], _capturar(e["cmd"], repo), nombre, prog, d,
+                                          e.get("filtro", ""))
             else:
                 raise SystemExit(f"tipo de escena desconocido: {e['tipo']}")
             ctx = navegador.new_context(viewport={"width": 1280, "height": 720},

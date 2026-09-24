@@ -27,6 +27,7 @@ letter-spacing:.06em;text-transform:uppercase;font-size:12.5px;font-weight:600}
 .eyebrow{color:var(--azul);letter-spacing:.14em;text-transform:uppercase;font-size:15px;font-weight:600}
 h1{font-size:50px;line-height:1.08;font-weight:650;letter-spacing:-.01em}
 code,.mono{font-family:'Cascadia Code','Cascadia Mono',Consolas,monospace}
+code{background:#ffffff10;border:1px solid var(--borde);border-radius:6px;padding:1px 7px;font-size:.84em;color:var(--ambar)}
 """
 
 
@@ -81,7 +82,7 @@ h1{margin:14px 0 34px;max-width:1000px}
 ul{list-style:none;display:flex;flex-direction:column;gap:14px;max-width:1060px}
 li{font-size:25px;line-height:1.35;padding-left:30px;position:relative}
 li::before{content:'';position:absolute;left:0;top:13px;width:11px;height:11px;border-radius:3px;background:var(--azul)}
-li code{background:#ffffff10;border:1px solid var(--borde);border-radius:6px;padding:1px 7px;font-size:21px;color:var(--ambar)}"""
+li code{font-size:21px}"""
     return _pagina(f"<div class='s'><div class='eyebrow entra'>{html.escape(capitulo)}</div>"
                    f"<h1 class='entra' style='animation-delay:.2s'>{html.escape(titulo)}</h1>"
                    f"{'<div class=cifras>' + tarjetas + '</div>' if tarjetas else ''}<ul>{lis}</ul></div>"
@@ -129,19 +130,23 @@ animation:cuenta {espera:.2f}s linear .8s forwards}}@keyframes cuenta{{to{{strok
                    f"{_pie(capitulo, repo, progreso)}", css)
 
 
-def terminal(capitulo: str, cmd: str, salida: str, repo: str, progreso: float, dur: float) -> str:
-    lineas = salida.splitlines()[-24:]
+def terminal(capitulo: str, cmd: str, salida: str, repo: str, progreso: float, dur: float,
+             filtro: str = "") -> str:
+    """La salida real, escrita linea a linea con scroll. `filtro`: regex de lineas a
+    quitar (p.ej. los tests entre los llamantes), para que quepa lo que se narra."""
+    import re as _re
+    lineas = [ln for ln in salida.splitlines() if not (filtro and _re.search(filtro, ln))][:120]
     escribir = min(2.5, 0.045 * len(cmd))
     paso = max(0.02, min(0.09, (dur * 0.55) / max(1, len(lineas))))
     css = """.v{position:absolute;left:56px;right:56px;top:40px;bottom:78px;background:#0a0e18;border:1px solid var(--borde);
 border-radius:14px;overflow:hidden;box-shadow:0 30px 80px #0008}
 .t{height:40px;background:#141a2b;display:flex;align-items:center;gap:8px;padding:0 16px;color:var(--suave);font-size:14px}
-.d{width:12px;height:12px;border-radius:50%}#o{padding:18px 24px;font-size:17px;line-height:1.45;white-space:pre-wrap;word-break:break-word;color:#cfd5e6}
+.d{width:12px;height:12px;border-radius:50%}#o{padding:18px 24px;font-size:17px;line-height:1.45;white-space:pre-wrap;word-break:break-word;color:#cfd5e6;height:calc(100% - 40px);overflow:hidden}
 .p{color:var(--verde)}.c{color:#fff}"""
     js = f"""const CMD={json.dumps(cmd)},L={json.dumps(lineas)};const o=document.getElementById('o');
 o.innerHTML="<span class='p'>$ </span><span class='c' id='c'></span>";let i=0;
 function t(){{if(i<CMD.length){{document.getElementById('c').textContent+=CMD[i++];setTimeout(t,{escribir * 1000 / max(1, len(cmd)):.0f});}}else setTimeout(s,400)}}
-let j=0;function s(){{if(j<L.length){{o.appendChild(document.createTextNode('\\n'+L[j++]));setTimeout(s,{paso * 1000:.0f})}}}}
+let j=0;function s(){{if(j<L.length){{o.appendChild(document.createTextNode('\\n'+L[j++]));o.scrollTop=o.scrollHeight;setTimeout(s,{paso * 1000:.0f})}}}}
 setTimeout(t,500);"""
     return _pagina(f"<div class='v'><div class='t'><span class='d' style='background:#f7768e'></span>"
                    f"<span class='d' style='background:#e0af68'></span><span class='d' style='background:#9ece6a'></span>"

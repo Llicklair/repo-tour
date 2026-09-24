@@ -66,7 +66,8 @@ SAPI "Microsoft Helena Desktop".
      {"resaltar": [40, 62]},
      {"buscar": "NombreClase("},
      {"bajar": 12}]},
-  {"tipo": "terminal", "capitulo": "...", "cmd": "gb calls simbolo --depth 2", "narracion": "..."},
+  {"tipo": "terminal", "capitulo": "...", "cmd": "gb calls simbolo --depth 2",
+   "filtro": "tests\\W", "narracion": "..."},
   {"tipo": "pregunta", "capitulo": "Compruebalo", "texto": "...", "respuesta": "... `codigo` ...",
    "narracion": "la pregunta, en voz", "respuesta_narrada": "la respuesta, en voz", "pausa": 5}
  ]}
@@ -75,6 +76,11 @@ SAPI "Microsoft Helena Desktop".
 - `resaltar` actua sobre el fichero abierto; rangos de 8-20 lineas se ven enteros.
 - `abrir` usa rutas relativas al repo, con `/`. La `linea` sale de `hechos.json`.
 - `terminal` ejecuta el comando en el repo al grabar: que sea rapido y determinista.
+  `filtro` (regex) quita lineas de la salida real — p.ej. los tests entre los
+  llamantes de `gb calls` — para que se vea lo que narras. Previsualiza la salida
+  filtrada antes de grabar: caben ~24 lineas y se desplaza hacia abajo.
+- Una escena `vscode` sin `buscar` vuelve sola al explorador (la busqueda de la
+  anterior no tapa el arbol).
 - Capitulo nuevo = capitulo del mp4. Repite el mismo nombre para escenas del mismo tema.
 
 ## Limites declarados
