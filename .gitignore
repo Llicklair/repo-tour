@@ -1,0 +1,5 @@
+.vscode-server-data/
+.navegador/
+out/
+__pycache__/
+serve-web.log
