@@ -26,9 +26,15 @@ def _gb(*args: str) -> dict:
         return {}
 
 
+#: Lo que no es el codigo que se aprende: tests, ejemplos, documentacion, bancos.
+#: En express, sin esto, el "nucleo" eran los `examples/` (24-sep-2026).
+_FUERA = ("tests", "test", "testing", "conftest", "examples", "example", "docs", "doc",
+          "benchmarks", "benchmark", "bench", "scripts", "fixtures")
+
+
 def _es_test(nombre: str) -> bool:
     partes = nombre.split(".")
-    return any(p in ("tests", "test", "testing", "conftest") or p.startswith("test_") for p in partes)
+    return any(p in _FUERA or p.startswith("test_") for p in partes)
 
 
 def _leer(repo: Path, *nombres: str, lineas: int = 80) -> str:
