@@ -154,6 +154,101 @@ setTimeout(t,500);"""
                    f"{_pie(capitulo, repo, progreso)}<script>{js}</script>", css)
 
 
+ESTILOS = {  # estilo de flecha: (color, trazo discontinuo, nombre en la leyenda)
+    "flujo": ("var(--azul)", "", ""),
+    "dinero": ("var(--verde)", "", "dinero"),
+    "riesgo": ("var(--ambar)", "", "riesgo"),
+    "siniestro": ("var(--rosa)", "", "siniestros"),
+    "info": ("var(--suave)", "7 6", "información"),
+}
+
+
+def diagrama(capitulo: str, titulo: str, nodos: list[dict], flechas: list[dict], repo: str, progreso: float,
+             dur: float, nota: str = "") -> str:
+    """Cajas y flechas animadas. `nodos`: {id, texto, sub?, x, y, color?, w?} con x, y en
+    0..1 dentro del lienzo. `flechas`: {de, a, texto?, estilo?, curva?} — `curva` (px)
+    separa dos flechas entre los mismos nodos. Todo admite `paso`: lo del mismo paso
+    aparece junto, y los pasos se reparten en la narracion. Por defecto los nodos salen
+    en el paso 0 y cada flecha en el suyo, en orden."""
+    import math
+    x0, y0, an, al, w, h = 110, 205, 1060, 395, 210, 72
+    caja = {n["id"]: (x0 + n["x"] * an, y0 + n["y"] * al, n.get("w", w) / 2, h / 2) for n in nodos}
+    flechas = [{"paso": i + 1, **f} for i, f in enumerate(flechas)]
+    pasos = sorted({n.get("paso", 0) for n in nodos} | {f["paso"] for f in flechas})
+    ds = dict(zip(pasos, _retrasos(len(pasos), dur, 0.9)))
+
+    def borde(cx, cy, hw, hh, hacia):
+        dx, dy = hacia[0] - cx, hacia[1] - cy
+        t = min(hw / abs(dx) if dx else 1e9, hh / abs(dy) if dy else 1e9)
+        k = 1 + 8 / max(1e-6, math.hypot(dx * t, dy * t))
+        return cx + dx * t * k, cy + dy * t * k
+
+    partes = []
+    for f in flechas:
+        (ax, ay, ahw, ahh), (bx, by, bhw, bhh) = caja[f["de"]], caja[f["a"]]
+        mx, my, largo = (ax + bx) / 2, (ay + by) / 2, math.hypot(bx - ax, by - ay) or 1
+        curva = f.get("curva", 0)
+        c = (mx - (by - ay) / largo * curva * 2, my + (bx - ax) / largo * curva * 2)
+        s, e = borde(ax, ay, ahw, ahh, c), borde(bx, by, bhw, bhh, c)
+        ux, uy = e[0] - c[0], e[1] - c[1]
+        u = math.hypot(ux, uy) or 1
+        ux, uy = ux / u, uy / u
+        punta = (f"{e[0]:.1f},{e[1]:.1f} {e[0] - 13 * ux - 6 * uy:.1f},{e[1] - 13 * uy + 6 * ux:.1f} "
+                 f"{e[0] - 13 * ux + 6 * uy:.1f},{e[1] - 13 * uy - 6 * ux:.1f}")
+        e2 = (e[0] - 10 * ux, e[1] - 10 * uy)
+        color, discont, _ = ESTILOS.get(f.get("estilo", "flujo"), ESTILOS["flujo"])
+        d = ds[f["paso"]]
+        trazo = (f"stroke-dasharray:{discont};opacity:0;animation:entra .5s {d:.2f}s forwards" if discont
+                 else f"stroke-dasharray:1;stroke-dashoffset:1;animation:traza .7s ease-out {d:.2f}s forwards")
+        largo_attr = "" if discont else " pathLength='1'"
+        lx, ly = .25 * s[0] + .5 * c[0] + .25 * e2[0], .25 * s[1] + .5 * c[1] + .25 * e2[1]
+        ancla = "middle"
+        vertical = abs(by - ay) > abs(bx - ax)
+        if f.get("texto") and (vertical or math.hypot(e2[0] - s[0], e2[1] - s[1]) < len(f["texto"]) * 8.6 + 16):
+            # flecha corta: la etiqueta no cabe en la linea y pisaria las cajas; va fuera.
+            # vertical: el texto horizontal encima de la linea la tapa; va al lado
+            if not vertical:
+                ly = min(ay - ahh, by - bhh) - 14
+            elif c[0] < mx:  # vertical: del lado hacia el que se curva
+                lx, ancla = lx - 12, "end"
+            else:
+                lx, ancla = lx + 12, "start"
+        etiqueta = (f"<text class='et entra' x='{lx:.1f}' y='{ly + 5:.1f}' style='fill:{color};text-anchor:{ancla};"
+                    f"animation-delay:{d + .4:.2f}s'>"
+                    f"{html.escape(f['texto'])}</text>" if f.get("texto") else "")
+        partes.append(f"<path d='M{s[0]:.1f},{s[1]:.1f} Q{c[0]:.1f},{c[1]:.1f} {e2[0]:.1f},{e2[1]:.1f}'{largo_attr} "
+                      f"style='stroke:{color};{trazo}'/><polygon class='entra' points='{punta}' "
+                      f"style='fill:{color};animation-delay:{d + .55:.2f}s'/>{etiqueta}")
+    for n in nodos:
+        cx, cy, hw, hh = caja[n["id"]]
+        color = f"var(--{n.get('color', 'azul')})"
+        texto_y = cy + (-3 if n.get("sub") else 7)
+        sub = (f"<text class='sub' x='{cx:.1f}' y='{cy + 21:.1f}'>{html.escape(n['sub'])}</text>" if n.get("sub") else "")
+        partes.append(f"<g class='entra' style='animation-delay:{ds[n.get('paso', 0)]:.2f}s'>"
+                      f"<rect x='{cx - hw:.1f}' y='{cy - hh:.1f}' width='{2 * hw:.1f}' height='{2 * hh:.1f}' rx='14' "
+                      f"style='stroke:{color}'/><text class='nt' x='{cx:.1f}' y='{texto_y:.1f}'>{html.escape(n['texto'])}</text>"
+                      f"{sub}</g>")
+    usados = [ESTILOS[e] for e in dict.fromkeys(f.get("estilo", "flujo") for f in flechas)
+              if e in ESTILOS and ESTILOS[e][2]]
+    leyenda = "".join(f"<span><i style='background:{c}'></i>{html.escape(t)}</span>" for c, _, t in usados)
+    pie_nota = (f"<p class='nota entra' style='animation-delay:{dur * .7:.2f}s'>{html.escape(nota)}</p>" if nota else "")
+    css = """.s{padding:70px 96px 0;height:666px;position:relative}h1{margin:14px 0 0;font-size:44px}
+svg{position:absolute;left:0;top:0;width:1280px;height:720px}
+rect{fill:var(--panel);stroke-width:2}path{fill:none;stroke-width:3;stroke-linecap:round}
+@keyframes traza{to{stroke-dashoffset:0}}
+.nt{fill:var(--texto);font-size:21px;font-weight:600;text-anchor:middle}
+.sub{fill:var(--suave);font-size:14.5px;text-anchor:middle}
+.et{font-size:16px;font-weight:600;text-anchor:middle;paint-order:stroke;stroke:var(--bg);stroke-width:7px;stroke-linejoin:round}
+.ley{position:absolute;right:96px;top:84px;display:flex;gap:18px;color:var(--suave);font-size:15px}
+.ley i{display:inline-block;width:18px;height:4px;border-radius:2px;margin-right:7px;vertical-align:middle}
+.nota{position:absolute;left:96px;right:96px;bottom:76px;color:var(--suave);font-size:18px}"""
+    return _pagina(f"<svg viewBox='0 0 {ANCHO} {ALTO}'>{''.join(partes)}</svg>"
+                   f"<div class='s'><div class='eyebrow entra'>{html.escape(capitulo)}</div>"
+                   f"<h1 class='entra' style='animation-delay:.2s'>{html.escape(titulo)}</h1>"
+                   f"{'<div class=ley>' + leyenda + '</div>' if leyenda else ''}</div>"
+                   f"{pie_nota}{_pie(capitulo, repo, progreso)}", css)
+
+
 def _marcado(textos: list[str]) -> list[str]:
     """Escapa y convierte `codigo` en <code>. Nada mas: el guion no trae HTML."""
     salida = []

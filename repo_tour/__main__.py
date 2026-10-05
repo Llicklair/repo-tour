@@ -95,6 +95,9 @@ def cmd_video(args) -> int:
                 pagina = diseno.diapositiva(cap, e["titulo"], e.get("puntos", []), nombre, prog, d, e.get("cifras"))
             elif e["tipo"] == "barras":
                 pagina = diseno.barras(cap, e["titulo"], e["datos"], nombre, prog, d, e.get("nota", ""))
+            elif e["tipo"] == "diagrama":
+                pagina = diseno.diagrama(cap, e["titulo"], e["nodos"], e["flechas"], nombre, prog, d,
+                                         e.get("nota", ""))
             elif e["tipo"] == "pregunta":
                 pagina = diseno.pregunta(cap, e["texto"], e["respuesta"], nombre, prog, d, revelar[i])
             elif e["tipo"] == "terminal":

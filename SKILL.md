@@ -66,6 +66,10 @@ SAPI "Microsoft Helena Desktop".
      {"resaltar": [40, 62]},
      {"buscar": "NombreClase("},
      {"bajar": 12}]},
+  {"tipo": "diagrama", "capitulo": "...", "titulo": "...", "nota": "opcional, abajo",
+   "nodos": [{"id": "a", "texto": "Broker", "sub": "opcional", "x": 0.04, "y": 0.5, "paso": 0}],
+   "flechas": [{"de": "a", "a": "b", "texto": "...", "estilo": "dinero", "curva": 16, "paso": 1}],
+   "narracion": "..."},
   {"tipo": "terminal", "capitulo": "...", "cmd": "gb calls simbolo --depth 2",
    "filtro": "tests\\W", "narracion": "..."},
   {"tipo": "pregunta", "capitulo": "Compruebalo", "texto": "...", "respuesta": "... `codigo` ...",
@@ -73,6 +77,12 @@ SAPI "Microsoft Helena Desktop".
  ]}
 ```
 
+- `diagrama`: cajas y flechas animadas para flujos y mapas. `x`, `y` van de 0 a 1 en
+  el lienzo bajo el titulo (x 0.04-0.95 y cajas de 210 px de ancho, `w` para otro).
+  `estilo`: flujo (por defecto), dinero, riesgo, siniestro, info (discontinua); los
+  usados salen en la leyenda. `curva` (px, con signo) separa flechas entre los mismos
+  nodos. Lo del mismo `paso` aparece junto y los pasos se reparten en la narracion:
+  ordenalos como los nombras. Previsualiza el ultimo fotograma: se cruzan flechas.
 - `resaltar` actua sobre el fichero abierto; rangos de 8-20 lineas se ven enteros.
 - `abrir` usa rutas relativas al repo, con `/`. La `linea` sale de `hechos.json`.
 - `terminal` ejecuta el comando en el repo al grabar: que sea rapido y determinista.
