@@ -1,7 +1,7 @@
 """VS Code de verdad en el video: `code serve-web` en local, manejado por Playwright.
 
 La navegacion no usa "ir a la definicion" (exigiria la extension del lenguaje):
-salta a fichero:linea con los datos de gb, que ya son el hecho de donde vive cada
+salta a fichero:linea con los datos de `hechos`, que ya son el hecho de donde vive cada
 simbolo y cada llamante. Lo que se ve es lo que dice el grafo.
 
 Pasos de una escena `vscode` (el guion los escribe; se reparten en su narracion):

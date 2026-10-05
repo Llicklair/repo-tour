@@ -1,4 +1,7 @@
-"""Los hechos de un repo, sacados de gb: la materia prima del guion.
+"""Los hechos de un repo: la materia prima del guion.
+
+Salen de galaxy-brain (`gb`) si esta instalado, o del analisis propio
+(`analisis.py`, solo biblioteca estandar: Python y JS/TS) si no.
 
 Nada de aqui opina. El nucleo es lo mas importado, los llamantes son aristas
 del grafo con su fichero y su linea, el comando de tests es el que `floor`
@@ -9,8 +12,11 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import subprocess
 from pathlib import Path
+
+from . import analisis
 
 MAX_NUCLEO = 6
 MAX_SIMBOLOS = 4
@@ -45,23 +51,34 @@ def _leer(repo: Path, *nombres: str, lineas: int = 80) -> str:
     return ""
 
 
-def recoger(repo: str | Path) -> dict:
+def recoger(repo: str | Path, fuente: str = "auto") -> dict:
+    """`fuente`: "gb", "propio" o "auto" (gb si esta en el PATH)."""
     repo = Path(repo).resolve()
-    grafo = _gb("graph", str(repo))
-    simbolos = _gb("symbols", str(repo))
-    suelo = _gb("floor", str(repo))
+    if fuente == "auto":
+        fuente = "gb" if shutil.which("gb") else "propio"
+    if fuente == "gb":
+        grafo, simbolos, suelo = _gb("graph", str(repo)), _gb("symbols", str(repo)), _gb("floor", str(repo))
+    else:
+        grafo, simbolos, suelo = analisis.analizar(repo)
 
     nodos = {n["qual"]: n for n in simbolos.get("nodes", [])}
     llamantes: dict[str, list[str]] = {}
     for origen, destino, tipo in simbolos.get("edges", []):
-        if tipo == "CALLS":
+        if tipo == "CALLS" and origen not in llamantes.get(destino, []):
             llamantes.setdefault(destino, []).append(origen)
+    for lista in llamantes.values():  # primero el codigo que se aprende, luego los tests
+        lista.sort(key=_es_test)
 
     def ficha(qual: str) -> dict:
         n = nodos.get(qual, {})
         return {k: n.get(k) for k in ("qual", "kind", "file", "line", "end", "sig", "doc") if n.get(k) not in (None, "")}
 
     fan_in = grafo.get("fan_in", {})
+    if grafo.get("edge_list"):  # lo importado por el codigo, no por los tests
+        fan_in = {m: 0 for m in fan_in}
+        for origen, destino in grafo["edge_list"]:
+            if not _es_test(origen):
+                fan_in[destino] = fan_in.get(destino, 0) + 1
     fan_out = grafo.get("fan_out", {})
     nucleo_mods = [m for m, _ in sorted(fan_in.items(), key=lambda kv: -kv[1]) if not _es_test(m)][:MAX_NUCLEO]
 
@@ -96,6 +113,7 @@ def recoger(repo: str | Path) -> dict:
     return {
         "repo": str(repo),
         "nombre": repo.name,
+        "fuente": fuente,
         "readme": _leer(repo, "README.md", "README.rst", "README.txt", "README"),
         "manifiesto": _leer(repo, "pyproject.toml", "package.json", "Cargo.toml", "go.mod", lineas=40),
         "carpetas": carpetas,

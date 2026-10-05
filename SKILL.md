@@ -1,17 +1,28 @@
 ---
 name: repo-tour
-description: Genera un video narrado para APRENDER un repo cualquiera — diapositivas, VS Code real navegando el codigo y preguntas de comprension — con los hechos de galaxy-brain (gb). Usar cuando Marcos pida "un video del repo", "explicame este proyecto en video" o "repo-tour <ruta>".
+description: Genera un video narrado para APRENDER un repo cualquiera — diapositivas, VS Code real navegando el codigo y preguntas de comprension — con hechos sacados del codigo (galaxy-brain si esta instalado, o el analisis propio). Usar cuando Marcos pida "un video del repo", "explicame este proyecto en video" o "repo-tour <ruta>".
 ---
 
 # repo-tour
 
 Un video didactico para Marcos, sobre un repo que quiere entender. **Los hechos los
-pone gb; tu escribes el guion; el pipeline graba.** Nada inventado en pantalla: cada
+pone el analisis; tu escribes el guion; el pipeline graba.** Nada inventado en pantalla: cada
 cifra, fichero y linea sale de `hechos.json` o de un comando que se ejecuta al grabar.
 
 Codigo: `C:\Users\marcos\dev\repo-tour` (paquete `repo_tour`). Requisitos ya presentes
-en la maquina: `gb`, ffmpeg, Playwright (chromium), VS Code (`code serve-web`), voz
-SAPI "Microsoft Helena Desktop".
+en la maquina: ffmpeg, Playwright (chromium), VS Code (`code serve-web`), voz
+SAPI "Microsoft Helena Desktop". Opcional: `gb` (galaxy-brain).
+
+## Fuente de los hechos
+
+`hechos --fuente auto` (por defecto) usa `gb` si esta en el PATH y, si no, el
+analisis propio (`repo_tour/analisis.py`, sin dependencias). `--fuente gb|propio`
+lo fuerza. `hechos.json` dice cual se uso en `"fuente"`.
+
+- `gb`: 17 lenguajes, grafo de modulos y de llamadas.
+- `propio`: Python (con `ast`) y JavaScript/TypeScript. Grafo de imports, simbolos
+  con inicio/fin y llamadas que se resuelven sin adivinar. En otros lenguajes solo
+  hay README, manifiesto, carpetas y comando de tests: usa `gb` o lee el codigo.
 
 ## Pasos
 
@@ -20,7 +31,8 @@ SAPI "Microsoft Helena Desktop".
    fichero/linea y llamantes, puntos de entrada, suelo, README, carpetas).
 2. **Entiende el repo** antes de escribir: lee el README y los ficheros del nucleo y
    de las entradas (con Read, las lineas que vas a enseñar). Sigue un flujo real de
-   punta a punta con `gb calls <simbolo> --depth 2`.
+   punta a punta: con `gb calls <simbolo> --depth 2` si hay gb, o con los
+   `llamantes` de `hechos.json` y `git grep -n "simbolo("`.
 3. **Guion**: escribe `out/guion-<nombre>.json` (esquema abajo). 10-14 escenas, 5-8 min.
 4. **Prueba barata**: `python -m repo_tour video out/guion-<nombre>.json --escenas 0-2 -o out/prueba.mp4`
    y mira fotogramas (`ffmpeg -ss <t> -i ... -frames:v 1 f.png` + Read).
@@ -36,7 +48,8 @@ SAPI "Microsoft Helena Desktop".
 4. `vscode` — el arbol de carpetas y el concepto central abierto en el editor.
 5. `vscode` + `buscar` — quien usa ese concepto (la busqueda enseña los usos).
 6. `vscode` — un flujo de punta a punta: entrada -> capa de aplicacion -> nucleo.
-7. `terminal` — el mismo camino preguntado al grafo (`gb calls ... --depth 2`).
+7. `terminal` — el mismo camino preguntado al repo: `gb calls ... --depth 2` si hay
+   gb; si no, `git grep -n "simbolo("` (quien lo llama, con fichero y linea).
 8. `vscode` — una pieza por dentro, la mas interesante.
 9. `diapositiva` — "Lo que te llevas": 3-5 ideas.
 10. `pregunta` x2-3 — comprension, no memoria de nombres ("¿que harias para...?", "¿por que...?").
@@ -70,7 +83,7 @@ SAPI "Microsoft Helena Desktop".
    "nodos": [{"id": "a", "texto": "Broker", "sub": "opcional", "x": 0.04, "y": 0.5, "paso": 0}],
    "flechas": [{"de": "a", "a": "b", "texto": "...", "estilo": "dinero", "curva": 16, "paso": 1}],
    "narracion": "..."},
-  {"tipo": "terminal", "capitulo": "...", "cmd": "gb calls simbolo --depth 2",
+  {"tipo": "terminal", "capitulo": "...", "cmd": "git grep -n \"simbolo(\"",
    "filtro": "tests\\W", "narracion": "..."},
   {"tipo": "pregunta", "capitulo": "Compruebalo", "texto": "...", "respuesta": "... `codigo` ...",
    "narracion": "la pregunta, en voz", "respuesta_narrada": "la respuesta, en voz", "pausa": 5}
@@ -87,7 +100,7 @@ SAPI "Microsoft Helena Desktop".
 - `abrir` usa rutas relativas al repo, con `/`. La `linea` sale de `hechos.json`.
 - `terminal` ejecuta el comando en el repo al grabar: que sea rapido y determinista.
   `filtro` (regex) quita lineas de la salida real — p.ej. los tests entre los
-  llamantes de `gb calls` — para que se vea lo que narras. Previsualiza la salida
+  llamantes de `gb calls` o de `git grep` — para que se vea lo que narras. Previsualiza la salida
   filtrada antes de grabar: caben ~24 lineas y se desplaza hacia abajo.
 - Una escena `vscode` sin `buscar` vuelve sola al explorador (la busqueda de la
   anterior no tapa el arbol).
@@ -97,5 +110,7 @@ SAPI "Microsoft Helena Desktop".
 
 - La voz es la de Windows (SAPI): solo Windows.
 - VS Code navega por fichero:linea, no por "ir a la definicion" (no hay extension de
-  lenguaje): por eso las lineas salen de gb.
+  lenguaje): por eso las lineas salen de `hechos.json`.
+- El analisis propio no resuelve `obj.metodo()` sobre variables (exige tipos): esas
+  llamadas se cuentan pero no son aristas. Mejor una arista ausente que una inventada.
 - El puerto de `serve-web` es 8791 (8765 es del Voice Bridge de AIOS).

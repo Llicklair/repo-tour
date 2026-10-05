@@ -1,6 +1,6 @@
-"""repo-tour: un video para aprender un repo, con los hechos de gb y VS Code de verdad.
+"""repo-tour: un video para aprender un repo, con sus hechos y VS Code de verdad.
 
-  python -m repo_tour hechos <repo> [-o hechos.json]
+  python -m repo_tour hechos <repo> [-o hechos.json] [--fuente auto|gb|propio]
   python -m repo_tour video <guion.json> [-o video.mp4] [--escenas 0-3]
 """
 from __future__ import annotations
@@ -32,7 +32,7 @@ def _rango(texto: str | None, n: int) -> list[int]:
 
 
 def cmd_hechos(args) -> int:
-    datos = hechos.recoger(args.repo)
+    datos = hechos.recoger(args.repo, args.fuente)
     salida = Path(args.o or AQUI / "out" / f"hechos-{Path(args.repo).resolve().name}.json")
     salida.parent.mkdir(parents=True, exist_ok=True)
     salida.write_text(json.dumps(datos, ensure_ascii=False, indent=1), encoding="utf-8")
@@ -160,9 +160,11 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser(prog="repo_tour", description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
-    h = sub.add_parser("hechos", help="los hechos del repo, de gb")
+    h = sub.add_parser("hechos", help="los hechos del repo (gb si esta, o analisis propio)")
     h.add_argument("repo")
     h.add_argument("-o")
+    h.add_argument("--fuente", choices=("auto", "gb", "propio"), default="auto",
+                   help="de donde salen: gb, el analisis propio, o auto (gb si esta en el PATH)")
     h.set_defaults(func=cmd_hechos)
     v = sub.add_parser("video", help="el video, a partir de un guion.json")
     v.add_argument("guion")
