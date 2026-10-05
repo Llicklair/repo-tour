@@ -34,8 +34,12 @@ lo fuerza. `hechos.json` dice cual se uso en `"fuente"`.
    punta a punta: con `gb calls <simbolo> --depth 2` si hay gb, o con los
    `llamantes` de `hechos.json` y `git grep -n "simbolo("`.
 3. **Guion**: escribe `out/guion-<nombre>.json` (esquema abajo). 10-14 escenas, 5-8 min.
-4. **Prueba barata**: `python -m repo_tour video out/guion-<nombre>.json --escenas 0-2 -o out/prueba.mp4`
-   y mira fotogramas (`ffmpeg -ss <t> -i ... -frames:v 1 f.png` + Read).
+4. **Previa** (segundos): `python -m repo_tour previa out/guion-<nombre>.json` -> el
+   ultimo fotograma de cada escena (no VS Code) en `out/previa-<nombre>/*.png` y una
+   hoja `index.html`. Avisa (`!`) de texto que se sale o se corta, cajas o etiquetas que
+   se pisan y cosas sobre el pie: corrige el guion hasta que no haya avisos, y mira
+   los PNG de los diagramas con Read. Para VS Code, prueba barata:
+   `python -m repo_tour video ... --escenas 3-4 -o out/prueba.mp4` y fotogramas con ffmpeg.
 5. **Video**: `python -m repo_tour video out/guion-<nombre>.json` -> `out/<nombre>.mp4`
    (+ `.srt`). Lleva capitulos: se salta de tema en cualquier reproductor.
 
@@ -79,19 +83,36 @@ lo fuerza. `hechos.json` dice cual se uso en `"fuente"`.
      {"resaltar": [40, 62]},
      {"buscar": "NombreClase("},
      {"bajar": 12}]},
-  {"tipo": "diagrama", "capitulo": "...", "titulo": "...", "nota": "opcional, abajo",
-   "nodos": [{"id": "a", "texto": "Broker", "sub": "opcional", "x": 0.04, "y": 0.5, "paso": 0}],
+  {"tipo": "diapositiva", "capitulo": "...", "titulo": "...", "destacado": "opcional",
+   "columnas": [{"titulo": "A", "color": "azul", "puntos": ["..."]}, {"titulo": "B", "color": "ambar", "puntos": ["..."]}],
+   "narracion": "..."},
+  {"tipo": "diagrama", "capitulo": "...", "titulo": "...", "nota": "opcional, abajo", "direccion": "horizontal",
+   "nodos": [{"id": "a", "texto": "Broker", "sub": "opcional", "paso": 0}],
    "flechas": [{"de": "a", "a": "b", "texto": "...", "estilo": "dinero", "curva": 16, "paso": 1}],
    "narracion": "..."},
   {"tipo": "terminal", "capitulo": "...", "cmd": "git grep -n \"simbolo(\"",
    "filtro": "tests\\W", "narracion": "..."},
+  {"tipo": "pregunta", "capitulo": "Compruebalo", "texto": "...", "opciones": ["...", "..."], "correcta": 1,
+   "respuesta": "por que es esa", "narracion": "..."},
   {"tipo": "pregunta", "capitulo": "Compruebalo", "texto": "...", "respuesta": "... `codigo` ...",
    "narracion": "la pregunta, en voz", "respuesta_narrada": "la respuesta, en voz", "pausa": 5}
  ]}
 ```
 
-- `diagrama`: cajas y flechas animadas para flujos y mapas. `x`, `y` van de 0 a 1 en
-  el lienzo bajo el titulo (x 0.04-0.95 y cajas de 210 px de ancho, `w` para otro).
+- `diapositiva`: con `puntos`, cada punto se ilumina al entrar y los anteriores se
+  atenuan (la vista sigue a la voz); al final vuelven todos. `disposicion`: `auto`
+  (por defecto: tarjetas si son 3-6 puntos y todos "Titulo corto: texto"), `lista` o
+  `tarjetas`. `columnas: [{"titulo", "puntos", "color"}]` en vez de `puntos` hace una
+  comparacion lado a lado (2-3 columnas, colores azul/verde/ambar/rosa).
+  `destacado`: la idea clave, en un recuadro que aparece al final.
+- `pregunta`: con `opciones` (lista) y `correcta` (indice desde 0) es tipo test: al
+  revelar, la correcta se marca en verde y las demas se apagan; `respuesta` dice por
+  que. Sin opciones, pregunta abierta. El reloj desaparece al revelar.
+- `portada`: mas de 8 capitulos van en dos columnas (caben hasta 14).
+- `diagrama`: cajas y flechas animadas para flujos y mapas. Sin `x`/`y` se colocan
+  solas por capas siguiendo las flechas (`direccion`: `horizontal` o `vertical`; con
+  5+ capas pasa a cajas compactas). Con `x`, `y` (0 a 1 en el lienzo, x 0.04-0.95)
+  mandan las tuyas; se pueden mezclar. El ancho se ajusta al texto (`w` lo fuerza).
   `estilo`: flujo (por defecto), dinero, riesgo, siniestro, info (discontinua); los
   usados salen en la leyenda. `curva` (px, con signo) separa flechas entre los mismos
   nodos. Lo del mismo `paso` aparece junto y los pasos se reparten en la narracion:

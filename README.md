@@ -6,7 +6,23 @@ con fichero y linea, quien llama a quien, comando de tests) salen del codigo; el
 guion lo escribe un agente a partir de ellos; esto lo graba.
 
     python -m repo_tour hechos <repo>          # out/hechos-<nombre>.json
+    python -m repo_tour previa <guion.json>    # PNG del final de cada escena + avisos, en segundos
     python -m repo_tour video <guion.json>     # out/<nombre>.mp4 + .srt, con capitulos
+
+## Escenas
+
+| Tipo | Que enseña |
+|---|---|
+| `portada` | titulo y capitulos (hasta 14, en dos columnas si son mas de 8) |
+| `diapositiva` | puntos que se iluminan al narrarlos, tarjetas, comparacion en columnas, cifras e idea clave |
+| `barras` | un ranking animado (p. ej. lo mas importado) |
+| `diagrama` | cajas y flechas que aparecen por pasos; se colocan solas por capas si no das coordenadas |
+| `vscode` | VS Code real: abrir, resaltar, buscar |
+| `terminal` | la salida real de un comando, al grabar |
+| `pregunta` | abierta o tipo test, con cuenta atras y la respuesta marcada |
+
+`previa` revisa cada fotograma y avisa de texto que se sale o se corta, cajas o
+etiquetas que se pisan y contenido sobre el pie, antes de gastar un render.
 
 ## De donde salen los hechos
 

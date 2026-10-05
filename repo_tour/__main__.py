@@ -2,6 +2,7 @@
 
   python -m repo_tour hechos <repo> [-o hechos.json] [--fuente auto|gb|propio]
   python -m repo_tour video <guion.json> [-o video.mp4] [--escenas 0-3]
+  python -m repo_tour previa <guion.json> [--escenas 0-3]   (PNG del final de cada escena)
 """
 from __future__ import annotations
 
@@ -37,6 +38,82 @@ def cmd_hechos(args) -> int:
     salida.parent.mkdir(parents=True, exist_ok=True)
     salida.write_text(json.dumps(datos, ensure_ascii=False, indent=1), encoding="utf-8")
     print(salida)
+    return 0
+
+
+def _html_de(e: dict, guion: dict, nombre: str, prog: float, d: float, revelar: float, repo: Path) -> str:
+    """El HTML de una escena que no es VS Code."""
+    cap = e.get("capitulo", "")
+    if e["tipo"] == "portada":
+        return diseno.portada(e["titulo"], e.get("subtitulo", ""), guion.get("capitulos", []), nombre, d)
+    if e["tipo"] == "diapositiva":
+        return diseno.diapositiva(cap, e["titulo"], e.get("puntos", []), nombre, prog, d, e.get("cifras"),
+                                  e.get("disposicion", "auto"), e.get("columnas"), e.get("destacado", ""))
+    if e["tipo"] == "barras":
+        return diseno.barras(cap, e["titulo"], e["datos"], nombre, prog, d, e.get("nota", ""))
+    if e["tipo"] == "diagrama":
+        return diseno.diagrama(cap, e["titulo"], e["nodos"], e["flechas"], nombre, prog, d, e.get("nota", ""),
+                               e.get("direccion", "horizontal"))
+    if e["tipo"] == "pregunta":
+        return diseno.pregunta(cap, e["texto"], e["respuesta"], nombre, prog, d, revelar,
+                               e.get("opciones"), e.get("correcta"))
+    if e["tipo"] == "terminal":
+        return diseno.terminal(cap, e["cmd"], _capturar(e["cmd"], repo), nombre, prog, d, e.get("filtro", ""))
+    raise SystemExit(f"tipo de escena desconocido: {e['tipo']}")
+
+
+def _dur_estimada(texto: str, velocidad: int = 0) -> float:
+    """Lo que tarda la voz SAPI en decir `texto`: ~2.5 palabras/s a velocidad 0."""
+    return 0.4 + len(texto.split()) / (2.5 * (1 + 0.1 * velocidad)) + 0.2
+
+
+def cmd_previa(args) -> int:
+    """El ultimo fotograma de cada escena (no VS Code), en PNG y en una hoja de contactos.
+    Sin voz ni video: segundos en vez de minutos, para corregir el guion antes de grabar."""
+    from playwright.sync_api import sync_playwright
+
+    guion = json.loads(Path(args.guion).read_text(encoding="utf-8"))
+    repo = Path(guion["repo"]).resolve()
+    nombre = guion.get("nombre") or repo.name
+    todas = guion["escenas"]
+    vel = guion.get("velocidad_voz", 0)
+    destino = Path(args.o or AQUI / "out" / f"previa-{nombre}")
+    destino.mkdir(parents=True, exist_ok=True)
+    fin = "*,*::before,*::after{animation-delay:0s!important;animation-duration:1ms!important}"
+    hechas = []
+    with sync_playwright() as p:
+        navegador = p.chromium.launch()
+        pg = navegador.new_page(viewport={"width": 1280, "height": 720})
+        for i in _rango(args.escenas, len(todas)):
+            e = todas[i]
+            if e["tipo"] == "vscode":
+                continue
+            revelar = 0.0
+            if e["tipo"] == "pregunta":
+                revelar = _dur_estimada(e["narracion"], vel) + float(e.get("pausa", 5))
+                d = revelar + _dur_estimada(e.get("respuesta_narrada") or e["respuesta"], vel)
+            else:
+                d = _dur_estimada(e["narracion"], vel)
+            pagina = _html_de(e, guion, nombre, (i + 1) / len(todas), d, revelar, repo)
+            pg.set_content(pagina.replace("</style>", fin + "</style>", 1), wait_until="load")
+            pg.wait_for_timeout(int(d * 1000) if e["tipo"] == "terminal" else 300)
+            png = destino / f"{i:02d}-{e['tipo']}.png"
+            pg.screenshot(path=str(png))
+            avisos = diseno.revisar(pg)
+            hechas.append((i, e, png, d, avisos))
+            print(f"escena {i:02d} {e['tipo']:<11} ~{d:4.0f}s  {png.name}")
+            for a in avisos:
+                print(f"    ! {a}")
+        navegador.close()
+    hoja = destino / "index.html"
+    hoja.write_text("<!doctype html><meta charset='utf-8'><title>previa " + nombre + "</title>"
+                    "<style>body{background:#111;color:#ccc;font:14px system-ui;margin:24px}"
+                    "div{display:grid;grid-template-columns:repeat(auto-fill,minmax(420px,1fr));gap:18px}"
+                    "img{width:100%;border:1px solid #333}b{color:#f7768e;display:block}</style><div>" + "".join(
+                        f"<figure><img src='{png.name}'><figcaption>{i:02d} {e['tipo']} ~{d:.0f}s"
+                        + "".join(f"<b>{a}</b>" for a in avisos) + "</figcaption></figure>"
+                        for i, e, png, d, avisos in hechas) + "</div>", encoding="utf-8")
+    print(f"previa: {hoja}")
     return 0
 
 
@@ -87,24 +164,7 @@ def cmd_video(args) -> int:
         for i, (e, d) in enumerate(zip(escenas, duraciones)):
             if e["tipo"] == "vscode":
                 continue
-            prog = (indices[i] + 1) / total
-            cap = e.get("capitulo", "")
-            if e["tipo"] == "portada":
-                pagina = diseno.portada(e["titulo"], e.get("subtitulo", ""), guion.get("capitulos", []), nombre, d)
-            elif e["tipo"] == "diapositiva":
-                pagina = diseno.diapositiva(cap, e["titulo"], e.get("puntos", []), nombre, prog, d, e.get("cifras"))
-            elif e["tipo"] == "barras":
-                pagina = diseno.barras(cap, e["titulo"], e["datos"], nombre, prog, d, e.get("nota", ""))
-            elif e["tipo"] == "diagrama":
-                pagina = diseno.diagrama(cap, e["titulo"], e["nodos"], e["flechas"], nombre, prog, d,
-                                         e.get("nota", ""))
-            elif e["tipo"] == "pregunta":
-                pagina = diseno.pregunta(cap, e["texto"], e["respuesta"], nombre, prog, d, revelar[i])
-            elif e["tipo"] == "terminal":
-                pagina = diseno.terminal(cap, e["cmd"], _capturar(e["cmd"], repo), nombre, prog, d,
-                                          e.get("filtro", ""))
-            else:
-                raise SystemExit(f"tipo de escena desconocido: {e['tipo']}")
+            pagina = _html_de(e, guion, nombre, (indices[i] + 1) / total, d, revelar[i], repo)
             ctx = navegador.new_context(viewport={"width": 1280, "height": 720},
                                         record_video_dir=str(trabajo / "webm"),
                                         record_video_size={"width": 1280, "height": 720})
@@ -171,6 +231,11 @@ def main(argv=None) -> int:
     v.add_argument("-o")
     v.add_argument("--escenas", help="solo un rango, p.ej. 0-3 (para iterar rapido)")
     v.set_defaults(func=cmd_video)
+    pv = sub.add_parser("previa", help="el ultimo fotograma de cada escena en PNG, sin grabar")
+    pv.add_argument("guion")
+    pv.add_argument("-o", help="carpeta (por defecto out/previa-<nombre>)")
+    pv.add_argument("--escenas", help="solo un rango, p.ej. 0-3")
+    pv.set_defaults(func=cmd_previa)
     args = ap.parse_args(argv)
     return args.func(args)
 
