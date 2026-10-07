@@ -76,6 +76,7 @@ def cmd_previa(args) -> int:
     repo = Path(guion["repo"]).resolve()
     nombre = guion.get("nombre") or repo.name
     todas = guion["escenas"]
+    diseno.IDIOMA = guion.get("idioma", "es")
     vel = guion.get("velocidad_voz", 0)
     destino = Path(args.o or AQUI / "out" / f"previa-{nombre}")
     destino.mkdir(parents=True, exist_ok=True)
@@ -126,6 +127,7 @@ def cmd_video(args) -> int:
     repo = Path(guion["repo"]).resolve()
     nombre = guion.get("nombre") or repo.name
     todas = guion["escenas"]
+    diseno.IDIOMA = guion.get("idioma", "es")
     indices = _rango(args.escenas, len(todas))
     escenas = [todas[i] for i in indices]
     trabajo = AQUI / "out" / ("trabajo-" + nombre)
@@ -141,7 +143,9 @@ def cmd_video(args) -> int:
         else:
             mapa.append((len(textos),))
             textos.append(e["narracion"])
-    wavs = voz.sintetizar(textos, trabajo / "voz", velocidad=guion.get("velocidad_voz", 0))
+    idioma = guion.get("idioma", "es")
+    wavs = voz.sintetizar(textos, trabajo / "voz", voz=voz.VOCES.get(idioma, voz.VOZ),
+                          velocidad=guion.get("velocidad_voz", 0), idioma=idioma)
     audios, revelar = [], []
     for i, (e, idx) in enumerate(zip(escenas, mapa)):
         destino = trabajo / f"audio{i:02d}.wav"
@@ -196,7 +200,7 @@ def cmd_video(args) -> int:
     for i, (e, (video, desde)) in enumerate(zip(escenas, videos)):
         seg = trabajo / f"seg{i:02d}.mp4"
         d = montaje.segmento(video, audios[i], seg, desde=desde)
-        cap = e.get("capitulo") or ("Portada" if e["tipo"] == "portada" else "")
+        cap = e.get("capitulo") or (diseno.texto_ui("portada") if e["tipo"] == "portada" else "")
         if cap and cap != ultimo:
             capitulos.append((t, cap))
             ultimo = cap

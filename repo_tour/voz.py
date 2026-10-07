@@ -6,6 +6,7 @@ import subprocess
 from pathlib import Path
 
 VOZ = "Microsoft Helena Desktop"
+VOCES = {"es": VOZ, "en": "Microsoft Zira Desktop"}
 
 
 def duracion(ruta: Path) -> float:
@@ -14,7 +15,8 @@ def duracion(ruta: Path) -> float:
     return float(r.stdout.strip() or 0)
 
 
-def sintetizar(textos: list[str], carpeta: Path, voz: str = VOZ, velocidad: int = 0) -> list[Path]:
+def sintetizar(textos: list[str], carpeta: Path, voz: str = VOZ, velocidad: int = 0,
+               idioma: str = "es") -> list[Path]:
     carpeta.mkdir(parents=True, exist_ok=True)
     wavs = [carpeta / f"voz{i:02d}.wav" for i in range(len(textos))]
     manifiesto = carpeta / "voz.json"
@@ -25,7 +27,7 @@ Add-Type -AssemblyName System.Speech
 $items = Get-Content -Raw -Encoding UTF8 '{manifiesto}' | ConvertFrom-Json
 $s = New-Object System.Speech.Synthesis.SpeechSynthesizer
 try {{ $s.SelectVoice('{voz}') }} catch {{
-  $es = $s.GetInstalledVoices() | Where-Object {{ $_.VoiceInfo.Culture.Name -like 'es-*' }} | Select-Object -First 1
+  $es = $s.GetInstalledVoices() | Where-Object {{ $_.VoiceInfo.Culture.Name -like '{idioma}-*' }} | Select-Object -First 1
   if ($es) {{ $s.SelectVoice($es.VoiceInfo.Name) }} }}
 $s.Rate = {int(velocidad)}
 foreach ($it in $items) {{ $s.SetOutputToWaveFile($it.wav); $s.Speak($it.texto); $s.SetOutputToDefaultAudioDevice() }}

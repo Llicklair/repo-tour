@@ -109,6 +109,8 @@ lo fuerza. `hechos.json` dice cual se uso en `"fuente"`.
   revelar, la correcta se marca en verde y las demas se apagan; `respuesta` dice por
   que. Sin opciones, pregunta abierta. El reloj desaparece al revelar.
 - `portada`: mas de 8 capitulos van en dos columnas (caben hasta 14).
+- `idioma` (raiz del guion): `es` por defecto; `en` usa la voz "Microsoft Zira Desktop" y pone
+  en ingles los textos fijos (portada, preguntas, leyendas). Narracion y escenas, en ese idioma.
 - `diagrama`: cajas y flechas animadas para flujos y mapas. Sin `x`/`y` se colocan
   solas por capas siguiendo las flechas (`direccion`: `horizontal` o `vertical`; con
   5+ capas pasa a cajas compactas). Con `x`, `y` (0 a 1 en el lienzo, x 0.04-0.95)

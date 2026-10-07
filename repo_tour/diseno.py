@@ -10,6 +10,20 @@ import json
 
 ANCHO, ALTO = 1280, 720
 
+IDIOMA = "es"  # "idioma" del guion; cambia los textos fijos de la interfaz
+TEXTOS = {
+    "es": {"eyebrow": "Un recorrido para aprender", "portada": "Portada", "comprueba": "Comprueba que lo has entendido",
+           "respuesta": "Respuesta", "dinero": "dinero", "riesgo": "riesgo", "siniestros": "siniestros",
+           "información": "información"},
+    "en": {"eyebrow": "A guided tour", "portada": "Intro", "comprueba": "Check your understanding",
+           "respuesta": "Answer", "dinero": "money", "riesgo": "risk", "siniestros": "claims",
+           "información": "information"},
+}
+
+
+def texto_ui(clave: str) -> str:
+    return TEXTOS.get(IDIOMA, TEXTOS["es"]).get(clave, TEXTOS["es"][clave])
+
 BASE = """*{box-sizing:border-box;margin:0;padding:0}
 :root{--bg:#0b1020;--panel:#131a2e;--borde:#26304d;--texto:#e6e9f2;--suave:#8b93b0;
 --azul:#7aa2f7;--verde:#9ece6a;--ambar:#e0af68;--rosa:#f7768e}
@@ -62,10 +76,10 @@ h1{font-size:64px;margin:18px 0 22px}.sub{font-size:24px;color:var(--suave);line
 ol{list-style:none;display:flex;flex-direction:column;gap:10px}
 li{background:var(--panel);border:1px solid var(--borde);border-radius:14px;padding:13px 18px;font-size:19px;display:flex;gap:14px}
 .n{color:var(--azul)}"""
-    return _pagina(f"<div class='s'><div><div class='eyebrow entra'>Un recorrido para aprender</div>"
+    return _pagina(f"<div class='s'><div><div class='eyebrow entra'>{texto_ui('eyebrow')}</div>"
                    f"<h1 class='entra' style='animation-delay:.25s'>{html.escape(titulo)}</h1>"
                    f"<p class='sub entra' style='animation-delay:.5s'>{html.escape(subtitulo)}</p></div>"
-                   f"<ol>{items}</ol></div>{_pie('Portada', repo, 0)}", css)
+                   f"<ol>{items}</ol></div>{_pie(texto_ui('portada'), repo, 0)}", css)
 
 
 def _foco(ds: list[float], dur: float) -> list[str]:
@@ -213,11 +227,11 @@ ol{{list-style:none;display:grid;grid-template-columns:{'1fr 1fr' if sum(len(o) 
 .r small{{display:block;color:var(--verde);letter-spacing:.12em;text-transform:uppercase;font-size:13px;margin-bottom:8px;font-weight:600}}"""
     reloj = (f"<svg class='reloj' style='opacity:0' viewBox='0 0 74 74'><circle class='fondo' cx='37' cy='37' r='32'/>"
              f"<circle class='anillo' cx='37' cy='37' r='32'/></svg>")
-    return _pagina(f"<div class='s'><div class='cab'><div class='eyebrow entra'>Comprueba que lo has entendido</div>"
+    return _pagina(f"<div class='s'><div class='cab'><div class='eyebrow entra'>{texto_ui('comprueba')}</div>"
                    f"{reloj if opciones else ''}</div>"
                    f"<div class='q entra' style='animation-delay:.2s'>{html.escape(texto)}</div>"
                    f"{'<ol>' + ops + '</ol>' if opciones else reloj}"
-                   f"<div class='r entra' style='animation-delay:{revelar:.2f}s'><small>Respuesta</small>{_marcado([respuesta])[0]}</div></div>"
+                   f"<div class='r entra' style='animation-delay:{revelar:.2f}s'><small>{texto_ui('respuesta')}</small>{_marcado([respuesta])[0]}</div></div>"
                    f"{_pie(capitulo, repo, progreso)}", css)
 
 
@@ -419,7 +433,7 @@ def diagrama(capitulo: str, titulo: str, nodos: list[dict], flechas: list[dict],
                       f"{sub}</g>")
     usados = [ESTILOS[e] for e in dict.fromkeys(f.get("estilo", "flujo") for f in flechas)
               if e in ESTILOS and ESTILOS[e][2]]
-    leyenda = "".join(f"<span><i style='background:{c}'></i>{html.escape(t)}</span>" for c, _, t in usados)
+    leyenda = "".join(f"<span><i style='background:{c}'></i>{html.escape(texto_ui(n))}</span>" for c, _, n in usados)
     pie_nota = (f"<p class='nota entra' style='animation-delay:{dur * .7:.2f}s'>{html.escape(nota)}</p>" if nota else "")
     css = """.s{padding:70px 96px 0;height:666px;position:relative}h1{margin:14px 0 0;font-size:44px}
 svg{position:absolute;left:0;top:0;width:1280px;height:720px}
